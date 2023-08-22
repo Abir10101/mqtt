@@ -1,6 +1,7 @@
 import random
-import time
 from paho.mqtt import client as mqtt_client
+from datetime import datetime
+import json
 
 
 broker = '127.0.0.1'
@@ -25,38 +26,23 @@ def connect_mqtt():
 
 
 def publish(client):
-    msg_count = 1
+    sensor_id = random.randint(1000, 9999)
+    reading_value = "demo reading value"
+    timestamp = datetime.now().isoformat()
 
-    message_data = {
-        "sensor_id": "unique_sensor_id",
-        "value": "<reading_value>",
-        "timestamp": "ISO8601_formatted_date_time"
+    message = {
+        "sensor_id": sensor_id,
+        "value": reading_value,
+        "timestamp": timestamp
     }
 
-    result = client.publish(topic, message_data)
+    result = client.publish(topic, json.dumps(message), retain=True)
 
     status = result[0]
     if status == 0:
-        print(f"Send `{msg}` to topic `{topic}`")
+        print(f"Send `{message}` to topic `{topic}`")
     else:
         print(f"Failed to send message to topic {topic}")
-
-
-
-
-    # while True:
-    #     time.sleep(1)
-    #     msg = f"messages: {msg_count}"
-    #     result = client.publish(topic, msg)
-    #     # result: [0, 1]
-    #     status = result[0]
-    #     if status == 0:
-    #         print(f"Send `{msg}` to topic `{topic}`")
-    #     else:
-    #         print(f"Failed to send message to topic {topic}")
-    #     msg_count += 1
-    #     if msg_count > 5:
-    #         break
 
 
 def run():

@@ -1,6 +1,7 @@
 import random
 from paho.mqtt import client as mqtt_client
 from pymongo import MongoClient
+import json
 
 
 broker = '127.0.0.1'
@@ -28,13 +29,12 @@ def connect_mqtt() -> mqtt_client:
 def subscribe(client: mqtt_client):
     def on_message(client, userdata, msg):
         message = msg.payload.decode()
+        message_obj = json.loads(message)
 
-        with MongoClient("mongodb://root:pass@localhost:27017") as client:
-            db = client["myapp"]
+        with MongoClient("mongodb://root:pass@localhost:27017") as mongo_client:
+            db = mongo_client["myapp"]
             readings_collection = db["readings"]
-            result = readings_collection.insert_one(
-                {"message": message}
-            )
+            result = readings_collection.insert_one(message_obj)
             print(message)
 
     client.subscribe(topic)
