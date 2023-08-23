@@ -1,7 +1,6 @@
-import random
+import json, redis, random
 from paho.mqtt import client as mqtt_client
 from pymongo import MongoClient
-import json
 
 
 broker = '127.0.0.1'
@@ -26,16 +25,30 @@ def connect_mqtt() -> mqtt_client:
     return client
 
 
+def connect_redis() -> redis:
+    return redis.Redis(host='localhost', port=6379, decode_responses=True)
+
+
+def cache_readings(r :redis, key :int, message :str):
+    r.lpush(key, message)
+    r.ltrim(key, 0, 9)
+
+
 def subscribe(client: mqtt_client):
     def on_message(client, userdata, msg):
         message = msg.payload.decode()
         message_obj = json.loads(message)
+        print(message)
 
         with MongoClient("mongodb://root:pass@localhost:27017") as mongo_client:
             db = mongo_client["myapp"]
             readings_collection = db["readings"]
             result = readings_collection.insert_one(message_obj)
-            print(message)
+
+        r = connect_redis()
+        sensor_id = message_obj["sensor_id"]
+        r_key = f"sensor_id:{sensor_id}"
+        cache_readings(r, r_key, message)
 
     client.subscribe(topic)
     client.on_message = on_message

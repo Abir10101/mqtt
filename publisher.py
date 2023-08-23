@@ -26,8 +26,8 @@ def connect_mqtt():
 
 
 def publish(client):
-    sensor_id = random.randint(1000, 9999)
-    reading_value = "demo reading value"
+    sensor_id = 1111
+    reading_value = "demo limited value"
     timestamp = datetime.now().isoformat()
 
     message = {
@@ -36,7 +36,7 @@ def publish(client):
         "timestamp": timestamp
     }
 
-    result = client.publish(topic, json.dumps(message), retain=True)
+    result = client.publish(topic, json.dumps(message))
 
     status = result[0]
     if status == 0:
