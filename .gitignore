@@ -1,2 +1,41 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+.env
+venv/
 env/
+*.env
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Local development settings
+.vscode/
+.idea/
+
+# IDE settings and project files
+*.sublime-project
+*.sublime-workspace
+*.pycharm
+*.idea
+
+# Compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# macOS specific files
+.DS_Store
+
+# Windows specific files
+Thumbs.db
