@@ -14,11 +14,8 @@ def connect_mqtt() -> mqtt_client:
     broker_port = os.environ.get("MESSAGE_BROKER_PORT", "1883")
     broker_port = int(broker_port)
     broker_client_id = f'subscribe-{random.randint(0, 100)}'
-    # username = 'emqx'
-    # password = 'public'
 
     client = mqtt_client.Client(broker_client_id)
-    # client.username_pw_set(username, password)
     client.on_connect = on_connect
     client.connect(broker_ip, broker_port)
     return client

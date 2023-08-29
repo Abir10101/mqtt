@@ -114,6 +114,20 @@ services:
       - MONGO_PASSWORD=${MONGO_PASS}
       - MONGO_DATABASE=${MONGO_DB}
 
+  redis-client:
+    image: redis:alpine3.18
+    container_name: redis-client
+    networks:
+      - mqttApp
+    depends_on:
+      - redis-server
+    restart: on-failure
+    ports:
+      - '127.0.0.1:6380:6379'
+    volumes:
+      - redisData:/data
+    command: ["redis-cli", "-h", "redis-server"]
+
 volumes:
   mongoData:
   redisData:
