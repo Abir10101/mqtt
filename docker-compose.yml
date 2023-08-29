@@ -1,28 +1,121 @@
 version: '3.1'
 
 services:
-  mongo:
-    image: mongo
-    restart: always
-    container_name: mongo-server
-    ports:
-      - 27017:27017
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=pass
-    volumes:
-      - mongodata:/data/db
 
-  mongo-express:
-    image: mongo-express
-    container_name: mongo-exp
-    restart: always
+  message-broker:
+    image: emqx:5.1
+    container_name: mqtt-broker
+    networks:
+      - mqttApp
     ports:
-      - 8081:8081
+      - '127.0.0.1:18083:18083'
+      - '127.0.0.1:${MESSAGE_BROKER_PORT}:1883'
+
+  redis-server:
+    image: redis:alpine3.18
+    container_name: redis-server
+    networks:
+      - mqttApp
+    ports:
+      - '127.0.0.1:${REDIS_PORT}:6379'
+    volumes:
+      - redisData:/data
+    command: sh -c "redis-server --save 60 1 --loglevel warning"
+
+  mongo-server:
+    image: mongo:7.0-rc
+    container_name: mongo-server
+    networks:
+      - mqttApp
+    restart: on-failure
+    ports:
+      - '127.0.0.1:${MONGO_PORT}:27017'
     environment:
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=pass
-      - ME_CONFIG_MONGODB_SERVER=mongo
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASS}
+    volumes:
+      - mongoData:/data/db
+
+  mongo-ui:
+    image: mongo-express:1.0.0-alpha.4
+    container_name: mongo-ui
+    networks:
+      - mqttApp
+    depends_on:
+      - mongo-server
+    restart: on-failure
+    ports:
+      - '8081:8081'
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_USERNAME}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_PASS}
+      - ME_CONFIG_MONGODB_SERVER=mongo-server
+      - ME_CONFIG_MONGODB_PORT=${MONGO_PORT}
+
+  subscriber:
+    build:
+      context: subscriber/.
+      dockerfile: Dockerfile
+    image: subscriber
+    container_name: subscriber
+    networks:
+      - mqttApp
+    depends_on:
+      - message-broker
+      - redis-server
+      - mongo-server
+    restart: on-failure
+    environment:
+      - MESSAGE_BROKER_IP=message-broker
+      - MESSAGE_BROKER_PORT=${MESSAGE_BROKER_PORT}
+      - REDIS_IP=redis-server
+      - REDIS_PORT=${REDIS_PORT}
+      - MONGO_IP=mongo-server
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASS}
+      - MONGO_DATABASE=${MONGO_DB}
+
+  publisher:
+    build:
+      context: publisher/.
+      dockerfile: Dockerfile
+    image: publisher
+    container_name: publisher
+    networks:
+      - mqttApp
+    depends_on:
+      - message-broker
+    restart: on-failure
+    environment:
+      - MESSAGE_BROKER_IP=message-broker
+      - MESSAGE_BROKER_PORT=${MESSAGE_BROKER_PORT}
+
+  api-app:
+    build:
+      context: api/.
+      dockerfile: Dockerfile
+    image: api_app
+    container_name: api_app
+    networks:
+      - mqttApp
+    depends_on:
+      - redis-server
+      - mongo-server
+    restart: on-failure
+    ports:
+      - '5000:5000'
+    environment:
+      - REDIS_IP=redis-server
+      - REDIS_PORT=${REDIS_PORT}
+      - MONGO_IP=mongo-server
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASS}
+      - MONGO_DATABASE=${MONGO_DB}
 
 volumes:
-  mongodata:
+  mongoData:
+  redisData:
+networks:
+  mqttApp:

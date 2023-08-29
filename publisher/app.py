@@ -1,15 +1,8 @@
-import random
+import random, os
 from paho.mqtt import client as mqtt_client
 from datetime import datetime
 import json
 
-
-broker = '127.0.0.1'
-port = 1883
-topic = "python/mqtt"
-client_id = f'publish-{random.randint(0, 1000)}'
-# username = 'emqx'
-# password = 'public'
 
 def connect_mqtt():
     def on_connect(client, userdata, flags, rc):
@@ -18,16 +11,23 @@ def connect_mqtt():
         else:
             print("Failed to connect, return code %d\n", rc)
 
-    client = mqtt_client.Client(client_id)
+    broker_ip = os.environ.get("MESSAGE_BROKER_IP", "127.0.0.1")
+    broker_port = os.environ.get("MESSAGE_BROKER_PORT", "1883")
+    broker_port = int(broker_port)
+    broker_client_id = f'subscribe-{random.randint(0, 100)}'
+    # username = 'emqx'
+    # password = 'public'
+
+    client = mqtt_client.Client(broker_client_id)
     # client.username_pw_set(username, password)
     client.on_connect = on_connect
-    client.connect(broker, port)
+    client.connect(broker_ip, broker_port)
     return client
 
 
 def publish(client):
-    sensor_id = 1111
-    reading_value = "demo limited value"
+    sensor_id = random.randint(0, 3)
+    reading_value = "demo value"
     timestamp = datetime.now().isoformat()
 
     message = {
@@ -36,13 +36,15 @@ def publish(client):
         "timestamp": timestamp
     }
 
-    result = client.publish(topic, json.dumps(message))
+    broker_topic = "python/mqtt"
+
+    result = client.publish(broker_topic, json.dumps(message))
 
     status = result[0]
     if status == 0:
-        print(f"Send `{message}` to topic `{topic}`")
+        print(f"Send `{message}` to topic `{broker_topic}`")
     else:
-        print(f"Failed to send message to topic {topic}")
+        print(f"Failed to send message to topic {broker_topic}")
 
 
 def run():
